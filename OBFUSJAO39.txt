@@ -45,7 +45,6 @@ local spectate_Enabled = false
 local manualSpamSpeed = 10
 local pingBased = true
 local TargetSelectionMethod = ""
-setfpscap(120);
 task.spawn(function()
     for _, Value in getgc() do
         if type(Value) == 'function' and islclosure(Value) then
@@ -1010,10 +1009,10 @@ local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/d
 local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
 
 local Window = Fluent:CreateWindow({
-    Title = "Blade Ball - StarX Hub V3",
-    SubTitle = "by CodeE4X",
+    Title = "Blade Ball - VicoXStar V.Release",
+    SubTitle = "by CodeE4X, Rudert",
     TabWidth = 160,
-    Size = UDim2.fromOffset(350, 350),
+    Size = UDim2.fromOffset(470,470),
     Acrylic = false,
     Theme = "DarkPurple",
     MinimizeKey = Enum.KeyCode.LeftControl
@@ -1224,8 +1223,8 @@ AutoParry:OnChanged(function(v)
                 ball_properties.distance = ball_properties.distance or LocalPlayer:DistanceFromCharacter(Ball.Position)
                 ball_properties.is_curved = Auto_Parry.Is_Curved()
 
-                local ping = game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValue()
-                local ping_threshold = math.clamp(ping / 10, 10, 16)
+                local ping = player_properties.ping
+                local ping_threshold = math.clamp(ping / 10, 10, 25)
                 local parry_accuracity = ball_properties.maximum_speed / 11.5 + ping_threshold
                 local parry_range = ping_threshold + ball_properties.speed / math.pi
 
@@ -1359,7 +1358,7 @@ AutoSpam:OnChanged(function(v)
                                 end
 
                                 if Lerp_Radians > 0.028 then
-                                    if parries > 3 then
+                                    if Parries > 3 then
                                         Parries = 1
                                     end
                                     return false
@@ -1448,7 +1447,7 @@ AutoSpam:OnChanged(function(v)
                                 })
                             end
                             
-                            if auto_spam and (zoomies.Parent == ball) then
+                            if auto_spam and (zoomies.Parent == ball) or ((playerDistance <= 30) or (targetDistance <=)) and (Parries > 1) then
                                 Auto_Parry.Parry()                                                
                                 Parries = Parries + 1                                           
                                 lastHit = tick()
@@ -1749,74 +1748,16 @@ local Toggle = Tabs.Visual:AddToggle("MegaLagReducer", {
 })
 
 local AntiBan = Tabs.Visual:AddToggle("AntiBan", {
-    Title = "Anti Ban (Improved)",
-    Description = "Hides script and disables on Wiggity staff detection",
+    Title = "Anti Ban (Minimal)",
+    Description = "Kicks you if Wiggity staff is detected",
     Default = false,
     Callback = function(state)
         if state then
-            print("Anti Ban enabled: Asset obfuscation and Wiggity staff detection active")
-            local function randomizeName(obj)
-                local chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-                local newName = ""
-                for _ = 1, 10 do
-                    newName = newName .. chars:sub(math.random(1, #chars), math.random(1, #chars))
-                end
-                obj.Name = newName
-            end
-            local guiElements = {ManualSpam, playerBillboard, ballBillboard}
-            for _, gui in ipairs(guiElements) do
-                if gui then
-                    randomizeName(gui)
-                end
-            end
-            local coreGui = game:GetService("CoreGui")
-            local dummyFolder = Instance.new("Folder")
-            randomizeName(dummyFolder)
-            dummyFolder.Parent = coreGui
-            for _, gui in ipairs(guiElements) do
-                if gui then
-                    gui.Parent = dummyFolder
-                end
-            end
-            local originalGetUpvalues = debug.getupvalues or function() return {} end
-            debug.getupvalues = function(func)
-                if tostring(func):lower():find("anticheat") or tostring(func):lower():find("security") then
-                    return {}
-                end
-                return originalGetUpvalues(func)
-            end
-            local originalGetConstants = debug.getconstants or function() return {} end
-            debug.getconstants = function(func)
-                if tostring(func):lower():find("anticheat") or tostring(func):lower():find("security") then
-                    return {}
-                end
-                return originalGetConstants(func)
-            end
-            local networkSent = 0
-            local maxNetworkPerSecond = 1000
-            local lastNetworkCheck = tick()
-            local originalFireServer = Instance.new("RemoteEvent").FireServer
-            for remote, _ in pairs(Remotes) do
-                if typeof(remote) == "Instance" and remote:IsA("RemoteEvent") then
-                    remote.FireServer = function(self, ...)
-                        if AntiBan.Value then
-                            if tick() - lastNetworkCheck >= 1 then
-                                networkSent = 0
-                                lastNetworkCheck = tick()
-                            end
-                            if networkSent >= maxNetworkPerSecond then
-                                print("Anti Ban: Network limit reached, delaying remote")
-                                task.wait(0.1)
-                            end
-                            networkSent = networkSent + 10
-                        end
-                        return originalFireServer(self, ...)
-                    end
-                end
-            end
+            print("Anti Ban enabled: Wiggity staff detection active")
             local wiggityGroupId = 12836673
             local minStaffRank = 14
             local knownStaff = {"Chunch"}
+
             local function isWiggityStaff(player)
                 if table.find(knownStaff, player.Name) then
                     print("Anti Ban: Staff detected via username (" .. player.Name .. ")")
@@ -1835,108 +1776,27 @@ local AntiBan = Tabs.Visual:AddToggle("AntiBan", {
                 end
                 return false
             end
+
+            -- Check existing players
             for _, player in pairs(game.Players:GetPlayers()) do
                 if player ~= game.Players.LocalPlayer and isWiggityStaff(player) then
-                    print("Anti Ban: Wiggity staff detected (" .. player.Name .. "), disabling script")
-                    if AutoParry.Value then
-                        AutoParry:SetValue(false)
-                    end
-                    if AutoSpam.Value then
-                        AutoSpam:SetValue(false)
-                    end
-                    if visualizerEnabled then
-                        visualizerEnabled = false
-                    end
-                    for _, gui in ipairs(guiElements) do
-                        if gui then
-                            pcall(function() gui:Destroy() end)
-                        end
-                    end
-                    if dummyFolder then
-                        pcall(function() dummyFolder:Destroy() end)
-                        dummyFolder = nil
-                    end
+                    print("Anti Ban: Wiggity staff detected (" .. player.Name .. "), exiting")
                     game.Players.LocalPlayer:Kick("Wiggity staff detected, exiting for safety")
                     return
                 end
             end
+
+            -- Monitor new players
             local playerAddedConnection
             playerAddedConnection = game.Players.PlayerAdded:Connect(function(player)
                 if AntiBan.Value and player ~= game.Players.LocalPlayer and isWiggityStaff(player) then
-                    print("Anti Ban: Wiggity staff detected (" .. player.Name .. "), disabling script")
-                    if AutoParry.Value then
-                        AutoParry:SetValue(false)
-                    end
-                    if AutoSpam.Value then
-                        AutoSpam:SetValue(false)
-                    end
-                    if visualizerEnabled then
-                        visualizerEnabled = false
-                    end
-                    for _, gui in ipairs(guiElements) do
-                        if gui then
-                            pcall(function() gui:Destroy() end)
-                        end
-                    end
-                    if dummyFolder then
-                        pcall(function() dummyFolder:Destroy() end)
-                        dummyFolder = nil
-                    end
+                    print("Anti Ban: Wiggity staff detected (" .. player.Name .. "), exiting")
                     playerAddedConnection:Disconnect()
                     game.Players.LocalPlayer:Kick("Wiggity staff detected, exiting for safety")
                 end
             end)
-            local chatConnection
-            chatConnection = game.Players.LocalPlayer.Chatted:Connect(function(message)
-                if AntiBan.Value and message:lower():find("!ban") or message:lower():find("!kick") or message:lower():find("!admin") or message:lower():find("!mod") then
-                    print("Anti Ban: Possible staff command detected, disabling script")
-                    if AutoParry.Value then
-                        AutoParry:SetValue(false)
-                    end
-                    if AutoSpam.Value then
-                        AutoSpam:SetValue(false)
-                    end
-                    if visualizerEnabled then
-                        visualizerEnabled = false
-                    end
-                    for _, gui in ipairs(guiElements) do
-                        if gui then
-                            pcall(function() gui:Destroy() end)
-                        end
-                    end
-                    if dummyFolder then
-                        pcall(function() dummyFolder:Destroy() end)
-                        dummyFolder = nil
-                    end
-                    chatConnection:Disconnect()
-                    game.Players.LocalPlayer:Kick("Staff command detected, exiting for safety")
-                end
-            end)
-            local cleanupConnection
-            cleanupConnection = game:GetService("RunService").Heartbeat:Connect(function()
-                if not AntiBan.Value then
-                    cleanupConnection:Disconnect()
-                    return
-                end
-                for _, obj in pairs(coreGui:GetChildren()) do
-                    if obj:IsA("Folder") and obj ~= dummyFolder then
-                        pcall(function() obj:Destroy() end)
-                    end
-                end
-            end)
         else
             print("Anti Ban disabled")
-            debug.getupvalues = originalGetUpvalues or debug.getupvalues
-            debug.getconstants = originalGetConstants or debug.getconstants
-            for remote, _ in pairs(Remotes) do
-                if typeof(remote) == "Instance" and remote:IsA("RemoteEvent") then
-                    remote.FireServer = originalFireServer
-                end
-            end
-            if dummyFolder then
-                pcall(function() dummyFolder:Destroy() end)
-                dummyFolder = nil
-            end
         end
     end
 })

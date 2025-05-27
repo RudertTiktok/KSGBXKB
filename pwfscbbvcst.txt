@@ -1436,7 +1436,7 @@ local function AutoSpamFunction()
                         end
 
                         
-                        if auto_spam and (zoomies.Parent == ball) and playerDistance <= Distance and targetDistance <= Distance then                                                        
+                        if auto_spam and (zoomies.Parent == ball) then                                                        
                             Auto_Parry.Parry()
                             Parries = Parries + 1
                             lastHit = tick()
